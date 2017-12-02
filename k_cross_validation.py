@@ -17,6 +17,19 @@ A -> A1, A2, A3, A4, A5 ... Ak   training matrices
 
 
 def k_cross(filename='data_matrix.p', path='', k=10):
+	'''
+	Create the training and validation matrices for k_cross validaton
+	param:
+		filename - name of pickle file with original (m x n) data matrix, must have file extension
+		path     - path to the filename - can be omitted if path is included in filename
+		k        - number of training/data sets
+	returns:
+		training_matrices   - array of (m x n) training matrices
+		validation_matrices - array of (m x n) validation matrices where each data point is omitted from the corresponding 
+							  training matrix
+		index_matrices      - array of array of tuples. The tuples indicate indices of the kth training matrix where an element 
+		                      was transplanted to a validation matrix
+	'''
 
 	filepath = filename if path == '' else '{}/{}'.format(path,filename)
 	A = pickle.load( open('{}'.format(filepath), 'rb'))
@@ -28,34 +41,23 @@ def k_cross(filename='data_matrix.p', path='', k=10):
 
 	validation_matrices = []
 	training_matrices   = []
+	index_lists         = []
 	for i in range(k):
 	    A_copy = A.copy()
 	    validation_matrices.append(np.zeros((m,n)))
 	    training_matrices.append(A_copy)
+	    index_lists.append([])
 
 	it    = 0
-	index = 0
 	for i in range(A.shape[0]):
 	    for j in range(A.shape[1]):
 	        if (A[i,j] != 0):
-	            index = it%k
-	            training_matrices[index][i,j]   = 0
-	            validation_matrices[index][i,j] = A[i,j]
+	            training_matrices[it%k][i,j]   = 0
+	            validation_matrices[it%k][i,j] = A[i,j]
+	            index_lists[it%k].append((i,j))
 	            it+=1
 
-	        
-	
-	# prep the code for writing to file... so dictionarify it
-	# then write to file
-	
-
-	# train_dict = {}
-	# val_dict   = {}
-	# for i in range(k):
-	#     train_dict['train{}'.format(i)] = training_matrices[i]
-	#     val_dict  ['val{}'.format(i)]   = validation_matrices[i]
-
-	return training_matrices, validation_matrices
+	return training_matrices, validation_matrices, index_lists
 
 
 
@@ -79,7 +81,7 @@ if __name__ == '__main__':
 
 
 
-	train_mats, val_mats = k_cross(k=k)
+	train_mats, val_mats, index_lists = k_cross(k=k)
 	m = train_mats[0].shape[0]
 	n = train_mats[0].shape[1]
 
@@ -90,26 +92,5 @@ if __name__ == '__main__':
 	            if(train_mats[index][i,j] != 0 and val_mats[index][i,j] != 0):
 	                print('we have a problem')
 	end = time.time()
-
-
-	# print(validation_matrices[0][0][30])
-	# print(validation_matrices[1][0][30])
-
-	# print(training_matrices[0][0][30])
-	# print(training_matrices[1][0][30])
-
-	# print()
-	# print(validation_matrices[0][0][833])
-	# print(validation_matrices[1][0][833])
-
-	# print(training_matrices[0][0][833])
-	# print(training_matrices[1][0][833])
-
-	# print()
-	# print(validation_matrices[0][0][859])
-	# print(validation_matrices[1][0][859])
-
-	# print(training_matrices[0][0][859])
-	# print(training_matrices[1][0][859])
 	print('you wasted {} seconds of my life'.format(end-start))
-	                    
+
