@@ -1,6 +1,8 @@
 import pickle
 import numpy as np
 import util
+import warnings
+warnings.filterwarnings("ignore")
 
 class CollaborativeFiltering():
 	''' Collaborative Filtering Estimator '''
@@ -28,6 +30,10 @@ class CollaborativeFiltering():
 
 	@staticmethod
 	def significance(r_a, r_i, thresh):
+		'''
+		input: rating vectors of user a (active user) and user i
+		output: significance weight
+		'''
 		S = np.equal(r_a>0, r_i>0).sum()
 		if S > thresh:
 			return 1
