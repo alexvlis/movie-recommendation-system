@@ -4,6 +4,8 @@ import util
 import warnings
 warnings.filterwarnings("ignore")
 
+from sklearn.decomposition import PCA
+
 class CollaborativeFiltering():
 	''' Collaborative Filtering Estimator '''
 
@@ -58,7 +60,11 @@ class CollaborativeFiltering():
 		self.k = k
 		self.s = s
 
-	def fit(self, A):
+	def fit(self, A, verbose=False):
+		self.verbose = verbose
+		if self.verbose:
+			print("Training...")
+
 		if self.method == "neighborhood":
 			return self.neighborhood_based(A)
 		if self.method == "item":
@@ -69,6 +75,11 @@ class CollaborativeFiltering():
 
 	def neighborhood_based(self, A):
 		A_new = np.array(A) # copy A matrix
+
+		# TODO: compute neighborhood in latex vector space
+		# pca = PCA(n_components=1000)
+		# pca.fit(A)
+		# U = pca.transform(A)
 
 		for a, r_a in enumerate(A):
 			# weight vector for active user a
@@ -89,9 +100,14 @@ class CollaborativeFiltering():
 			mask = r_a==0
 			A_new[a, mask] = (np.mean(r_a[r_a>0]) + CollaborativeFiltering.prediction(A[K], w[K]))[mask]
 
-			print("user:", a, end='\r')
+			if self.verbose:
+				print("fitting user:", a, end='\r')
 
-		return A_new
+		if self.verbose:
+			print("\nDone.")
+
+		A_new[A_new>5] = 5.0 # clip all ratings to 5
+		return np.around(A_new*2)/2 # round to nearest .5
 
 	def item_based(self, A):
 		pass
@@ -100,7 +116,11 @@ if __name__ == "__main__":
 	A = util.load_data_matrix()
 
 	cf = CollaborativeFiltering()
-	A_new = cf.fit(A)
+	A_new = cf.fit(A, verbose=True)
 
 	print(A, A.shape)
 	print(A_new, A_new.shape)
+	print("Sanity check:")
+	print("negative values:", (A_new<0).sum())
+	print("values >5:", (A_new> 5).sum())
+	print("average predicted rating:", A_new.mean())
