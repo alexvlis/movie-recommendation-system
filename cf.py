@@ -17,7 +17,10 @@ class CollaborativeFiltering():
 		'''
 
 		# Get movies both users rated
-		mask = np.equal(r_a>0, r_i>0)
+		mask = np.logical_and(r_a>0, r_i>0)
+		if mask.sum() == 0:
+			return -1 # Does not actually matter what value we return
+
 		r_a = r_a[mask]
 		r_i = r_i[mask]
 
@@ -36,7 +39,7 @@ class CollaborativeFiltering():
 		input: rating vectors of user a (active user) and user i
 		output: significance weight
 		'''
-		S = np.equal(r_a>0, r_i>0).sum()
+		S = np.logical_and(r_a>0, r_i>0).sum()
 		if S > thresh:
 			return 1
 		return S/thresh
@@ -47,10 +50,8 @@ class CollaborativeFiltering():
 		input: neighborhood matrix of k rows, weight vector of neighborhood
 		output: offset prediction vector for active user
 		'''
-		m = list(map(lambda x: np.mean(x), r))
-
 		# FIXME:
-		return np.dot((r.T - m), w) / np.sum(w)
+		return np.dot((r.T - r.mean(axis=1)), w) / np.sum(w)
 
 
 	'''*************************** Class methods ****************************'''
@@ -101,7 +102,7 @@ class CollaborativeFiltering():
 			A_new[a, mask] = (np.mean(r_a[r_a>0]) + CollaborativeFiltering.prediction(A[K], w[K]))[mask]
 
 			if self.verbose:
-				print("fitting user:", a, end='\r')
+				print("fitting item:", a, end='\r')
 
 		if self.verbose:
 			print("\nDone.")
@@ -122,5 +123,7 @@ if __name__ == "__main__":
 	print(A_new, A_new.shape)
 	print("Sanity check:")
 	print("negative values:", (A_new<0).sum())
-	print("values >5:", (A_new> 5).sum())
+	print("values > 5:", (A_new>5).sum())
+	print("nans:", np.isnan(A_new).sum())
 	print("average predicted rating:", A_new.mean())
+	print("top 5 recommendations:", np.argsort(A_new[0])[:5])
