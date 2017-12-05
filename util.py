@@ -25,7 +25,7 @@ def k_cross(k=10):
 		k        - number of training/data sets
 	returns:
 		training_matrices   - array of (m x n) training matrices
-		validation_matrices - array of (m x n) validation matrices where each data point is omitted from the corresponding 
+		prediction_matrices - array of (m x n) validation matrices where each data point is omitted from the corresponding 
 							  training matrix
 		index_matrices      - array of (m x n) boolean masks where each true element is where an element was transplanted
 							  from the training matrix to the validation matrix
@@ -37,12 +37,12 @@ def k_cross(k=10):
 	print('A.shape = {}'.format(A.shape))
 
 
-	validation_matrices = []
+	prediction_matrices = []
 	training_matrices   = []
 	index_lists         = []
 	for i in range(k):
 	    A_copy = A.copy()
-	    validation_matrices.append(np.zeros((m,n)))
+	    prediction_matrices.append(np.zeros((m,n)))
 	    training_matrices.append(A_copy)
 	    index_lists.append(np.zeros((m,n), dtype=bool))
 
@@ -51,11 +51,11 @@ def k_cross(k=10):
 	    for j in range(A.shape[1]):
 	        if (A[i,j] != 0):
 	            training_matrices[it%k][i,j]   = 0
-	            validation_matrices[it%k][i,j] = A[i,j]
+	            prediction_matrices[it%k][i,j] = A[i,j]
 	            index_lists[it%k][i,j] = True
 	            it+=1
 
-	return training_matrices, validation_matrices, index_lists
+	return training_matrices, prediction_matrices, index_lists
 
 
 def load_data_matrix(filename='data_matrix.p', path='data'):
