@@ -44,11 +44,11 @@ class Ridge():
         print("Cu and Cm built")
         
         # Initialize X
-        self.X = np.random.rand(k,self.f)
+        self.X = np.ones((k,self.f))
         Xprev = self.X+2*self.epsilon*np.ones((k,self.f))
         
         # Initialize Y
-        self.Y = np.random.rand(self.f,n)
+        self.Y = np.ones((self.f,n))
         Yprev = self.Y+2*self.epsilon*np.ones((self.f,n))
         
         while max(np.linalg.norm(self.X-Xprev) , np.linalg.norm(self.Y-Yprev) ) > self.epsilon:
@@ -79,7 +79,7 @@ class Ridge():
     
 if __name__ == "__main__":
     A = util.load_data_matrix()
-    # A = util.load_data_matrix()[:,:100] it's too painful for my laptop for all the movies 
+    # A = util.load_data_matrix()[:,:1000] # it's too painful for my laptop for all the movies 
     print(A, A.shape)
     r = Ridge()
     r.fit(A)
