@@ -2,9 +2,9 @@ import pickle
 import numpy as np
 import util
 import warnings
+import matplotlib.pyplot as plt
 warnings.filterwarnings("ignore")
 
-from sklearn.decomposition import PCA
 
 class CollaborativeFiltering():
 	''' Collaborative Filtering Estimator '''
@@ -50,7 +50,6 @@ class CollaborativeFiltering():
 		input: neighborhood matrix of k rows, weight vector of neighborhood
 		output: offset prediction vector for active user
 		'''
-		# FIXME:
 		return np.dot((r.T - r.mean(axis=1)), w) / np.sum(w)
 
 
@@ -69,18 +68,13 @@ class CollaborativeFiltering():
 		if self.method == "neighborhood":
 			return self.neighborhood_based(A)
 		if self.method == "item":
-			return self.item_based(A)
+			return self.neighborhood_based(A.T).T
 
 
 	'''*************************** Private methods **************************'''
 
 	def neighborhood_based(self, A):
 		A_new = np.array(A) # copy A matrix
-
-		# TODO: compute neighborhood in latex vector space
-		# pca = PCA(n_components=1000)
-		# pca.fit(A)
-		# U = pca.transform(A)
 
 		for a, r_a in enumerate(A):
 			# weight vector for active user a
@@ -97,7 +91,6 @@ class CollaborativeFiltering():
 
 			# Get indices of neighborhood
 			K = np.argsort(w)[:self.k]
-
 			mask = r_a==0
 			A_new[a, mask] = (np.mean(r_a[r_a>0]) + CollaborativeFiltering.prediction(A[K], w[K]))[mask]
 
@@ -110,20 +103,49 @@ class CollaborativeFiltering():
 		A_new[A_new>5] = 5.0 # clip all ratings to 5
 		return np.around(A_new*2)/2 # round to nearest .5
 
-	def item_based(self, A):
-		pass
 
 if __name__ == "__main__":
-	A = util.load_data_matrix()
-
+	train_mats, val_mats, masks = util.k_cross(k=10)
 	cf = CollaborativeFiltering()
-	A_new = cf.fit(A, verbose=True)
 
-	print(A, A.shape)
-	print(A_new, A_new.shape)
-	print("Sanity check:")
-	print("negative values:", (A_new<0).sum())
-	print("values > 5:", (A_new>5).sum())
-	print("nans:", np.isnan(A_new).sum())
-	print("average predicted rating:", A_new.mean())
-	print("top 5 recommendations:", np.argsort(A_new[0])[:5])
+	k_grid = range(1, 250, 50)
+	s_grid = range(1, 100, 10)
+
+	try:
+		for k in k_grid:
+			mse = list()
+			for s in s_grid:
+				# Set hyperparameters
+				cf.k = k
+				cf.s = s
+
+				# Stochastically select one batch per iteration
+				i = np.random.choice(len(train_mats))
+				train = train_mats[i]
+				mask = masks[i]
+
+				train_new = cf.fit(train)
+				error = util.get_MSE(train_new, mask)
+				print("MSE:", error, "parameters:", k, s)
+				mse.append(error)
+
+			plt.plot(s_grid, mse, label="k=" + str(k))
+	except KeyboardInterrupt:
+		pass
+
+	plt.legend()
+	plt.xlabel("s")
+	plt.ylabel("MSE Validation Error")
+	plt.savefig("cf.png", dpi=400)
+
+	# Set optimum hyperparameters
+	cf.k = 50
+	cf.s = 1
+
+	# Get the mean MSE over all the batches
+	e = 0
+	for train, mask, val in zip(train_mats, val_mats, masks):
+		train_new = cf.fit(train)
+		e += util.get_MSE(train_new, mask.astype(bool))
+
+	print("average MSE:", e/len(train_mats))
