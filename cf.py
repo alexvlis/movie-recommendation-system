@@ -105,47 +105,69 @@ class CollaborativeFiltering():
 
 
 if __name__ == "__main__":
-	train_mats, val_mats, masks = util.k_cross(k=10)
+	# train_mats, val_mats, masks = util.k_cross(k=10)
+	# cf = CollaborativeFiltering()
+
+	# k_grid = range(1, 250, 50)
+	# s_grid = range(1, 100, 10)
+
+	# try:
+	# 	for k in k_grid:
+	# 		mse = list()
+	# 		for s in s_grid:
+	# 			# Set hyperparameters
+	# 			cf.k = k
+	# 			cf.s = s
+
+	# 			# Stochastically select one batch per iteration
+	# 			i = np.random.choice(len(train_mats))
+	# 			train = train_mats[i]
+	# 			mask = masks[i]
+
+	# 			train_new = cf.fit(train)
+	# 			error = util.get_MSE(train_new, mask)
+	# 			print("MSE:", error, "parameters:", k, s)
+	# 			mse.append(error)
+
+	# 		plt.plot(s_grid, mse, label="k=" + str(k))
+	# except KeyboardInterrupt:
+	# 	pass
+
+	# plt.legend()
+	# plt.xlabel("s")
+	# plt.ylabel("MSE Validation Error")
+	# plt.savefig("cf.png", dpi=400)
+
+	# # Set optimum hyperparameters
+	# cf.k = 50
+	# cf.s = 1
+
+	# # Get the mean MSE over all the batches
+	# e = 0
+	# for train, mask, val in zip(train_mats, val_mats, masks):
+	# 	train_new = cf.fit(train)
+	# 	e += util.get_MSE(train_new, mask.astype(bool))
+
+	# print("average MSE:", e/len(train_mats))
+
+	A = util.load_data_matrix()
 	cf = CollaborativeFiltering()
+	A_new = cf.fit(A, verbose=True)
+	recommendations = np.argsort(A_new[1, :])[:5]
 
-	k_grid = range(1, 250, 50)
-	s_grid = range(1, 100, 10)
+	B = pickle.load( open('{}'.format('data/data_dicts.p'), 'rb'))
 
-	try:
-		for k in k_grid:
-			mse = list()
-			for s in s_grid:
-				# Set hyperparameters
-				cf.k = k
-				cf.s = s
+	for movie_id,rating in B['userId_rating'][2]:
+	   if rating == 5 :
+	       print(B['movieId_movieName'][movie_id] , ", rating:" , rating )
 
-				# Stochastically select one batch per iteration
-				i = np.random.choice(len(train_mats))
-				train = train_mats[i]
-				mask = masks[i]
-
-				train_new = cf.fit(train)
-				error = util.get_MSE(train_new, mask)
-				print("MSE:", error, "parameters:", k, s)
-				mse.append(error)
-
-			plt.plot(s_grid, mse, label="k=" + str(k))
-	except KeyboardInterrupt:
-		pass
-
-	plt.legend()
-	plt.xlabel("s")
-	plt.ylabel("MSE Validation Error")
-	plt.savefig("cf.png", dpi=400)
-
-	# Set optimum hyperparameters
-	cf.k = 50
-	cf.s = 1
-
-	# Get the mean MSE over all the batches
-	e = 0
-	for train, mask, val in zip(train_mats, val_mats, masks):
-		train_new = cf.fit(train)
-		e += util.get_MSE(train_new, mask.astype(bool))
-
-	print("average MSE:", e/len(train_mats))
+	l = recommendations
+	k_list =[]
+	for movie_column in l :
+	   for k, v in B['movieId_movieCol'].items():
+	       if v == movie_column:
+	           k_list.append(k)
+	print("")
+	print("Recommendations")
+	for movie_id in k_list :
+	   print(B['movieId_movieName'][movie_id])
