@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
 
-@author: Leo Laugier
-"""
 import numpy as np
 import util
 import matplotlib.pyplot as plt
@@ -34,7 +31,7 @@ class Ridge():
                     self.P[u][m] = 0
                 
                 C[u][m] = 1 + self.alpha*A[u][m]
-        #print("P and C built")
+        # print("P and C built")
         # Construct the C^u matrices and the  C^m matrices
         Cu = []
         Cm = []    
@@ -65,6 +62,7 @@ class Ridge():
         
     # K is the number of recommended movies   
     def predict(self, u, K = 9125):
+    #def predict(self, u, K = 100): 
         P_u_hat = np.dot(self.X[u] , self.Y)
         indices = np.argsort(P_u_hat)
         
@@ -104,7 +102,7 @@ if __name__ == "__main__":
     
     '''Basic test of the algorithm'''
     A = util.load_data_matrix()
-    A = util.load_data_matrix()
+    # A = util.load_data_matrix()[:,:100] # if tested on a laptop, please use the first 100 movies 
     print(A, A.shape)
     r = Ridge()
     r.fit(A)
@@ -129,6 +127,7 @@ if __name__ == "__main__":
     
     '''Choice of hyperparameters'''
     A = util.load_data_matrix()
+    # A = util.load_data_matrix()[:,:100] # if tested on a laptop, please use the first 100 movies 
     f_range = np.arange(100,400,20)
     ranks_f = []
     alpha_range = np.arange(10, 80, 10)
