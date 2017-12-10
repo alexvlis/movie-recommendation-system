@@ -56,27 +56,31 @@ class MovieSVM():
         acc_prev, acc_k = 0, 2*self.e
         #print(np.delete(A, 1, axis=1).shape)    
         #print()
+        self.train_accuracy = []
         while acc_k - acc_prev > self.e:
+            train_correct = 0
+            total_train = 0
             start_time = time.time()
             iteration += 1
             for i in range(len(svms)):
                 print("fit:", str(i) + "/" + str(len(svms)), end='\r')
                 X = np.delete(A, i, axis=1)
                 Y = A[:,i]
+        
                 try:
                     svms[i].fit(X, Y)
                 except:
                     dummy = 0
-                    #print("\nskipped:",i,"  - likely caused by all one class\n\n") 
-                    #print(len(Y), np.count_nonzero(Y==0), np.count_nonzero(Y==1))
-                    #for j in range(len(T[:,i])):
-                    #    print(A[j, i], T[j, i])
-                    #return
+        
                 A[:, i] = svms[i].predict(X)
                 for j in range(len(A[:,i])):
                     if T[j,i] != -1 and A[j,i] != T[j,i]:
-                        A[j,i] = T[j,i]        
-            
+                        #A[j,i] = T[j,i]     
+                        total_train += 1
+                    elif T[j,i] != -1:
+                        train_correct += 1   
+                        total_train += 1
+            self.train_accuracy.append((train_correct*1.0)/total_train)
             # calculate iteration accuracy
             countMatched = 0
             # go through each column, predict that column, check matching on V
@@ -92,7 +96,7 @@ class MovieSVM():
             
             self.accuracy.append(acc_k)
             print("\n - Iteration:", iteration, "\n - With Accuracy:", acc_k*100, "\n Difference:", acc_k - acc_prev, "\n Time (seconds):", time.time() - start_time)
-        return self.accuracy
+        return self.accuracy, self.train_accuracy
 
                 
         # while acc_k - acc_k-1 > e:
@@ -128,15 +132,19 @@ class MovieSVM():
         return A
 
 if __name__== "__main__":
-    NUM_MOVIES = 2000
+    NUM_MOVIES = 1000
     Data = util.load_data_matrix()
     A = Data[:400, :NUM_MOVIES]
-    movieSVM = MovieSVM(3.5, .1)
+    movieSVM = MovieSVM(3.5, .01)
     V = Data[401:, :NUM_MOVIES]
+    v_non_zero = np.count_nonzero(V)
     for i in range(len(A[0]) - 1, 0, -1):
         if np.count_nonzero(A[:,i]) == 0:
             A = np.delete(A, i, axis=1)
             V = np.delete(V, i, axis=1)
     
-    accuracy = movieSVM.fit(A, V)
+    accuracy, train_accuracy = movieSVM.fit(A, V)
+    print("\n\n sparsity:", 1 - (v_non_zero*1.0)/(V.shape[0] * V.shape[1] * 1.0))
     print("\n\nFinished Accuracy Values:", accuracy)
+    print("\n\nTraining Accuracy:", train_accuracy)
+
