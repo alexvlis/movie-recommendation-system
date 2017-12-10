@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
+"""
+
+@author: Leo Laugier
+"""
 import numpy as np
 import util
 import matplotlib.pyplot as plt
+import pickle
 
 class Ridge():
     '''Weighted Ridge Regression'''
-    def __init__(self, f = 200, alpha=20, lambd = 1, epsilon = 0.001):
+    def __init__(self, f = 200, alpha=20, lambd = 0.1, thres = 0 ,epsilon = 0.1):
         self.f = f
         self.alpha = alpha
         self.lambd = lambd
@@ -23,13 +28,13 @@ class Ridge():
         C = np.zeros((k,n))
         for u in range(k): # users
             for m in range(n): # movies
-                if A[u][m]>0 : 
+                if A[u][m]>thres : 
                     self.P[u][m] = 1
                 else : 
                     self.P[u][m] = 0
                 
                 C[u][m] = 1 + self.alpha*A[u][m]
-        print("P and C built")
+        #print("P and C built")
         # Construct the C^u matrices and the  C^m matrices
         Cu = []
         Cm = []    
@@ -38,7 +43,7 @@ class Ridge():
             
         for m in range(n):
             Cm.append(np.diag(C[:,m]))
-        print("Cu and Cm built")
+        #print("Cu and Cm built")
         
         # Initialize X
         self.X = np.random.rand(k,self.f)
@@ -56,10 +61,10 @@ class Ridge():
             
             for m in range(n): # movies
                 self.Y[:,m] = np.dot( np.linalg.inv(np.dot(np.dot( np.transpose(self.X) , Cm[m]) , self.X ) + self.lambd*np.identity(self.f)) , np.dot(np.dot(np.transpose(self.X), Cm[m]),self.P[:,m] ))
-        print("fitting done")
+        #print("fitting done")
         
     # K is the number of recommended movies   
-    def predict(self, u, K = 300):
+    def predict(self, u, K = 9125):
         P_u_hat = np.dot(self.X[u] , self.Y)
         indices = np.argsort(P_u_hat)
         
@@ -98,59 +103,112 @@ def rank(mat1, r):
 if __name__ == "__main__":
     
     '''Basic test of the algorithm'''
-#    A = util.load_data_matrix()
-#    A = util.load_data_matrix()[:,:100] # it's too painful for my laptop for all the movies 
-#    print(A, A.shape)
-#    r = Ridge()
-#    r.fit(A)
-#    recommendations = r.predict(1) # predicts the top K movies for user 1
-#    print(recommendations)
+    A = util.load_data_matrix()
+    A = util.load_data_matrix()
+    print(A, A.shape)
+    r = Ridge()
+    r.fit(A)
+    recommendations = r.predict(1) # predicts the top K movies for user 1
+    print(recommendations)
+    B = pickle.load( open('{}'.format('data/data_dicts.p'), 'rb'))
+    
+    for movie_id,rating in B['userId_rating'][2]:
+        if rating ==5 :
+            print(B['movieId_movieName'][movie_id] , ", rating:" , rating )
+        
+    l = recommendations
+    k_list =[]
+    for movie_column in l :
+        for k, v in B['movieId_movieCol'].items():
+            if v == movie_column:
+                k_list.append(k)
+    print("")
+    print("Recommendations")
+    for movie_id in k_list :
+        print(B['movieId_movieName'][movie_id])
     
     '''Choice of hyperparameters'''
-    A = util.load_data_matrix()[:,:500]
+    A = util.load_data_matrix()
     f_range = np.arange(100,400,20)
     ranks_f = []
     alpha_range = np.arange(10, 80, 10)
     ranks_alpha = []
     lambd_range = np.logspace(-1, 1, 10)
     ranks_lambd = []
+    thres_range = np.arange(0, 3.5, 0.5)
+    ranks_thres = []
+
+    k = 4
+    train_mats, val_mats, masks = util.k_cross(k=k)
 
     '''Choice of f'''
-#    for f in f_range : 
-#        r = Ridge(f)
-#        r.fit(A)
-#        x = rank(A, r)
-#        ranks_f.append(x*100)
-#        print(x)
-#        
-#    plt.plot(f_range,ranks_f)
-#    plt.ylabel('expected percentile ranking (%)')
-#    plt.xlabel('f')
-#    plt.show()
+    for f in f_range :
+        print(f)
+        x=[]
+        for i in range(k):
+            train_mat = train_mats[i]
+            val_mat = val_mats[i]
+            r = Ridge(f=f)
+            r.fit(train_mat)
+            x.append(rank(val_mat, r))
+            
+        ranks_f.append(np.mean(x)*100)
+        
+    plt.plot(f_range,ranks_f)
+    plt.ylabel('expected percentile ranking (%)')
+    plt.xlabel('f')
+    plt.show()
 
     '''Choice of alpha'''
-#    for alpha in alpha_range : 
-#        r = Ridge(alpha = alpha)
-#        r.fit(A)
-#        x = rank(A, r)
-#        ranks_alpha.append(x*100)
-#        print(x)
-#        
-#    plt.plot(alpha_range,ranks_alpha)
-#    plt.ylabel('expected percentile ranking (%)')
-#    plt.xlabel('alpha')
-#    plt.show()
+    for alpha in alpha_range :
+        print(alpha)
+        x=[]
+        for i in range(k):
+            train_mat = train_mats[i]
+            val_mat = val_mats[i]
+            r = Ridge(alpha=alpha)
+            r.fit(train_mat)
+            x.append(rank(val_mat, r))
+            
+        ranks_alpha.append(np.mean(x)*100)
+        
+    plt.plot(alpha_range,ranks_alpha)
+    plt.ylabel('expected percentile ranking (%)')
+    plt.xlabel('alpha')
+    plt.show()
     
     '''Choice of lambda'''
-    for lambd in lambd_range : 
-        r = Ridge(lambd = lambd)
-        r.fit(A)
-        x = rank(A, r)
-        ranks_lambd.append(x*100)
-        print(x)
+    for lambd in lambd_range :
+        print(lambd)
+        x=[]
+        for i in range(k):
+            train_mat = train_mats[i]
+            val_mat = val_mats[i]
+            r = Ridge(lambd=lambd)
+            r.fit(train_mat)
+            x.append(rank(val_mat, r))
+            
+        ranks_lambd.append(np.mean(x)*100)
         
     plt.semilogx(lambd_range,ranks_lambd)
     plt.ylabel('expected percentile ranking (%)')
     plt.xlabel('lambda')
     plt.show()
+
+    '''Choice of threshold'''
+    for thres in thres_range :
+        print(thres)
+        x=[]
+        for i in range(k):
+            train_mat = train_mats[i]
+            val_mat = val_mats[i]
+            r = Ridge(thres=thres)
+            r.fit(train_mat)
+            x.append(rank(val_mat, r))
             
+        ranks_thres.append(np.mean(x)*100)
+        
+    plt.plot(thres_range,ranks_thres)
+    plt.ylabel('expected percentile ranking (%)')
+    plt.xlabel('threshold')
+    plt.show()
